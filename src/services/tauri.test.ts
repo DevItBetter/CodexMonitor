@@ -11,6 +11,7 @@ import {
   forkThread,
   getAppsList,
   getAgentsSettings,
+  getCodexSettings,
   getExperimentalFeatureList,
   getGitHubIssues,
   getGitLog,
@@ -43,6 +44,7 @@ import {
   tailscaleStatus,
   pickImageFiles,
   pickWorkspacePaths,
+  updateCodexSettings,
   writeGlobalAgentsMd,
   writeGlobalCodexConfigToml,
   createAgent,
@@ -490,6 +492,29 @@ describe("tauri invoke wrappers", () => {
     expect(invokeMock).toHaveBeenCalledWith("tailscale_daemon_start");
     expect(invokeMock).toHaveBeenCalledWith("tailscale_daemon_stop");
     expect(invokeMock).toHaveBeenCalledWith("tailscale_daemon_status");
+  });
+
+  it("maps codex settings helpers", async () => {
+    const invokeMock = vi.mocked(invoke);
+    invokeMock
+      .mockResolvedValueOnce({ codexBin: "/usr/bin/codex", codexArgs: "--profile dev" })
+      .mockResolvedValueOnce({ codexBin: "/usr/bin/codex", codexArgs: "--profile prod" });
+
+    await expect(getCodexSettings()).resolves.toEqual({
+      codexBin: "/usr/bin/codex",
+      codexArgs: "--profile dev",
+    });
+    await expect(
+      updateCodexSettings({ codexBin: "/usr/bin/codex", codexArgs: "--profile prod" }),
+    ).resolves.toEqual({
+      codexBin: "/usr/bin/codex",
+      codexArgs: "--profile prod",
+    });
+
+    expect(invokeMock).toHaveBeenNthCalledWith(1, "get_codex_settings");
+    expect(invokeMock).toHaveBeenNthCalledWith(2, "update_codex_settings", {
+      settings: { codexBin: "/usr/bin/codex", codexArgs: "--profile prod" },
+    });
   });
 
   it("reads agent.md for a workspace", async () => {

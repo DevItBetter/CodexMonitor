@@ -15,8 +15,9 @@ use crate::event_sink::TauriEventSink;
 use crate::remote_backend;
 use crate::shared::agents_config_core;
 use crate::shared::codex_core::{self, insert_optional_nullable_string};
+use crate::shared::settings_core;
 use crate::state::AppState;
-use crate::types::WorkspaceEntry;
+use crate::types::{CodexSettings, WorkspaceEntry};
 
 fn emit_thread_live_event(app: &AppHandle, workspace_id: &str, method: &str, params: Value) {
     let _ = app.emit(
@@ -56,7 +57,18 @@ pub(crate) async fn codex_doctor(
     codex_bin: Option<String>,
     codex_args: Option<String>,
     state: State<'_, AppState>,
+    app: AppHandle,
 ) -> Result<Value, String> {
+    if remote_backend::is_remote_mode(&*state).await {
+        return remote_backend::call_remote(
+            &*state,
+            app,
+            "codex_doctor",
+            json!({ "codexBin": codex_bin, "codexArgs": codex_args }),
+        )
+        .await;
+    }
+
     crate::shared::codex_aux_core::codex_doctor_core(&state.app_settings, codex_bin, codex_args)
         .await
 }
@@ -66,8 +78,54 @@ pub(crate) async fn codex_update(
     codex_bin: Option<String>,
     codex_args: Option<String>,
     state: State<'_, AppState>,
+    app: AppHandle,
 ) -> Result<Value, String> {
+    if remote_backend::is_remote_mode(&*state).await {
+        return remote_backend::call_remote(
+            &*state,
+            app,
+            "codex_update",
+            json!({ "codexBin": codex_bin, "codexArgs": codex_args }),
+        )
+        .await;
+    }
+
     crate::shared::codex_update_core::codex_update_core(&state.app_settings, codex_bin, codex_args)
+        .await
+}
+
+#[tauri::command]
+pub(crate) async fn get_codex_settings(
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<CodexSettings, String> {
+    if remote_backend::is_remote_mode(&*state).await {
+        let response = remote_backend::call_remote(&*state, app, "get_codex_settings", json!({}))
+            .await?;
+        return serde_json::from_value(response).map_err(|err| err.to_string());
+    }
+
+    Ok(settings_core::get_codex_settings_core(&state.app_settings).await)
+}
+
+#[tauri::command]
+pub(crate) async fn update_codex_settings(
+    settings: CodexSettings,
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<CodexSettings, String> {
+    if remote_backend::is_remote_mode(&*state).await {
+        let response = remote_backend::call_remote(
+            &*state,
+            app,
+            "update_codex_settings",
+            json!({ "settings": settings }),
+        )
+        .await?;
+        return serde_json::from_value(response).map_err(|err| err.to_string());
+    }
+
+    settings_core::update_codex_settings_core(settings, &state.app_settings, &state.settings_path)
         .await
 }
 

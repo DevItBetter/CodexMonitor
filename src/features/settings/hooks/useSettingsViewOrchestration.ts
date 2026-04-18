@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type {
   AppSettings,
+  CodexSettings,
   CodexDoctorResult,
   CodexUpdateResult,
   DictationModelStatus,
@@ -24,8 +25,10 @@ import {
   COMPOSER_PRESET_LABELS,
   DICTATION_MODELS,
 } from "@settings/components/settingsViewConstants";
+import type { CodexSection } from "@settings/components/settingsTypes";
 
 type UseSettingsViewOrchestrationArgs = {
+  activeSection: CodexSection;
   workspaceGroups: WorkspaceGroup[];
   groupedWorkspaces: GroupedWorkspaces;
   ungroupedLabel: string;
@@ -43,6 +46,9 @@ type UseSettingsViewOrchestrationArgs = {
     codexBin: string | null,
     codexArgs: string | null,
   ) => Promise<CodexUpdateResult>;
+  onGetCodexSettings?: () => Promise<CodexSettings>;
+  onUpdateCodexSettings?: (settings: CodexSettings) => Promise<CodexSettings>;
+  onSyncLocalCodexSettings?: (codexBin: string | null, codexArgs: string | null) => void;
   onUpdateWorkspaceSettings: (
     id: string,
     settings: Partial<WorkspaceSettings>,
@@ -69,6 +75,7 @@ type UseSettingsViewOrchestrationArgs = {
 };
 
 export function useSettingsViewOrchestration({
+  activeSection,
   workspaceGroups,
   groupedWorkspaces,
   ungroupedLabel,
@@ -80,6 +87,9 @@ export function useSettingsViewOrchestration({
   onToggleAutomaticAppUpdateChecks,
   onRunDoctor,
   onRunCodexUpdate,
+  onGetCodexSettings,
+  onUpdateCodexSettings,
+  onSyncLocalCodexSettings,
   onUpdateWorkspaceSettings,
   scaleShortcutTitle,
   scaleShortcutText,
@@ -187,14 +197,19 @@ export function useSettingsViewOrchestration({
   });
 
   const serverSectionProps = useSettingsServerSection({
+    enabled: activeSection === "server",
     appSettings,
     onUpdateAppSettings,
     onMobileConnectSuccess,
   });
 
   const codexSectionProps = useSettingsCodexSection({
+    enabled: activeSection === "codex",
     appSettings,
     projects,
+    onGetCodexSettings,
+    onUpdateCodexSettings,
+    onSyncLocalCodexSettings,
     onUpdateAppSettings,
     onRunDoctor,
     onRunCodexUpdate,
@@ -207,12 +222,16 @@ export function useSettingsViewOrchestration({
   });
 
   const featuresSectionProps = useSettingsFeaturesSection({
+    enabled: activeSection === "features",
     appSettings,
     featureWorkspaceId,
     onUpdateAppSettings,
   });
 
-  const agentsSectionProps = useSettingsAgentsSection({ projects });
+  const agentsSectionProps = useSettingsAgentsSection({
+    enabled: activeSection === "agents",
+    projects,
+  });
 
   return {
     aboutSectionProps: {

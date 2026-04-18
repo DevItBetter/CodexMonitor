@@ -3,6 +3,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import type { Options as NotificationOptions } from "@tauri-apps/plugin-notification";
 import type {
   AppSettings,
+  CodexSettings,
   CodexUpdateResult,
   CodexDoctorResult,
   DictationModelStatus,
@@ -871,6 +872,16 @@ export async function isMobileRuntime(): Promise<boolean> {
 
 export async function updateAppSettings(settings: AppSettings): Promise<AppSettings> {
   return invoke<AppSettings>("update_app_settings", { settings });
+}
+
+export async function getCodexSettings(): Promise<CodexSettings> {
+  return invoke<CodexSettings>("get_codex_settings");
+}
+
+export async function updateCodexSettings(
+  settings: CodexSettings,
+): Promise<CodexSettings> {
+  return invoke<CodexSettings>("update_codex_settings", { settings });
 }
 
 export async function tailscaleStatus(): Promise<TailscaleStatus> {

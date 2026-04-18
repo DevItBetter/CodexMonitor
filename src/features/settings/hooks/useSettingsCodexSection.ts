@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import type {
   AppSettings,
+  CodexSettings,
   CodexDoctorResult,
   CodexUpdateResult,
   WorkspaceInfo,
@@ -14,8 +15,12 @@ import { buildEditorContentMeta } from "@settings/components/settingsViewHelpers
 import { normalizeCodexArgsInput } from "@/utils/codexArgsInput";
 
 type UseSettingsCodexSectionArgs = {
+  enabled?: boolean;
   appSettings: AppSettings;
   projects: WorkspaceInfo[];
+  onGetCodexSettings?: () => Promise<CodexSettings>;
+  onUpdateCodexSettings?: (settings: CodexSettings) => Promise<CodexSettings>;
+  onSyncLocalCodexSettings?: (codexBin: string | null, codexArgs: string | null) => void;
   onUpdateAppSettings: (next: AppSettings) => Promise<void>;
   onRunDoctor: (
     codexBin: string | null,
@@ -38,6 +43,8 @@ export type SettingsCodexSectionProps = {
   codexPathDraft: string;
   codexArgsDraft: string;
   codexDirty: boolean;
+  codexSettingsLoading: boolean;
+  codexSettingsError: string | null;
   isSavingSettings: boolean;
   doctorState: {
     status: "idle" | "running" | "done";
@@ -76,14 +83,28 @@ export type SettingsCodexSectionProps = {
 };
 
 export const useSettingsCodexSection = ({
+  enabled = true,
   appSettings,
   projects,
+  onGetCodexSettings,
+  onUpdateCodexSettings,
+  onSyncLocalCodexSettings,
   onUpdateAppSettings,
   onRunDoctor,
   onRunCodexUpdate,
 }: UseSettingsCodexSectionArgs): SettingsCodexSectionProps => {
+  const fallbackCodexSettings: CodexSettings = {
+    codexBin: appSettings.codexBin ?? null,
+    codexArgs: appSettings.codexArgs ?? null,
+  };
+  const [backendCodexSettings, setBackendCodexSettings] = useState<CodexSettings>({
+    codexBin: fallbackCodexSettings.codexBin,
+    codexArgs: fallbackCodexSettings.codexArgs,
+  });
   const [codexPathDraft, setCodexPathDraft] = useState(appSettings.codexBin ?? "");
   const [codexArgsDraft, setCodexArgsDraft] = useState(appSettings.codexArgs ?? "");
+  const [codexSettingsLoading, setCodexSettingsLoading] = useState(Boolean(onGetCodexSettings));
+  const [codexSettingsError, setCodexSettingsError] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [doctorState, setDoctorState] = useState<{
     status: "idle" | "running" | "done";
@@ -100,7 +121,7 @@ export const useSettingsCodexSection = ({
     error: defaultModelsError,
     connectedWorkspaceCount: defaultModelsConnectedWorkspaceCount,
     refresh: refreshDefaultModels,
-  } = useSettingsDefaultModels(projects);
+  } = useSettingsDefaultModels(projects, enabled);
 
   const {
     content: globalAgentsContent,
@@ -145,18 +166,64 @@ export const useSettingsCodexSection = ({
   });
 
   useEffect(() => {
-    setCodexPathDraft(appSettings.codexBin ?? "");
-  }, [appSettings.codexBin]);
+    if (!enabled) {
+      return;
+    }
+    if (!onGetCodexSettings) {
+      return;
+    }
 
-  useEffect(() => {
-    setCodexArgsDraft(appSettings.codexArgs ?? "");
-  }, [appSettings.codexArgs]);
+    let active = true;
+    setCodexSettingsLoading(true);
+    setCodexSettingsError(null);
+    void onGetCodexSettings()
+      .then((settings) => {
+        if (!active) {
+          return;
+        }
+        const normalized = {
+          codexBin: settings.codexBin?.trim() ? settings.codexBin.trim() : null,
+          codexArgs: normalizeCodexArgsInput(settings.codexArgs),
+        };
+        setBackendCodexSettings(normalized);
+        setCodexPathDraft(normalized.codexBin ?? "");
+        setCodexArgsDraft(normalized.codexArgs ?? "");
+      })
+      .catch((error) => {
+        if (!active) {
+          return;
+        }
+        const fallback = fallbackCodexSettings;
+        setBackendCodexSettings(fallback);
+        setCodexPathDraft(fallback.codexBin ?? "");
+        setCodexArgsDraft(fallback.codexArgs ?? "");
+        setCodexSettingsError(error instanceof Error ? error.message : String(error));
+      })
+      .finally(() => {
+        if (active) {
+          setCodexSettingsLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    appSettings.activeRemoteBackendId,
+    appSettings.backendMode,
+    appSettings.codexArgs,
+    appSettings.codexBin,
+    enabled,
+    appSettings.remoteBackendHost,
+    appSettings.remoteBackendToken,
+    onGetCodexSettings,
+  ]);
 
   const nextCodexBin = codexPathDraft.trim() ? codexPathDraft.trim() : null;
   const nextCodexArgs = normalizeCodexArgsInput(codexArgsDraft);
   const codexDirty =
-    nextCodexBin !== (appSettings.codexBin ?? null) ||
-    nextCodexArgs !== (appSettings.codexArgs ?? null);
+    nextCodexBin !== (backendCodexSettings.codexBin ?? null) ||
+    nextCodexArgs !== (backendCodexSettings.codexArgs ?? null);
 
   const handleBrowseCodex = async () => {
     const selection = await open({ multiple: false, directory: false });
@@ -169,11 +236,22 @@ export const useSettingsCodexSection = ({
   const handleSaveCodexSettings = async () => {
     setIsSavingSettings(true);
     try {
-      await onUpdateAppSettings({
-        ...appSettings,
-        codexBin: nextCodexBin,
-        codexArgs: nextCodexArgs,
-      });
+      const nextSettings = await (onUpdateCodexSettings
+        ? onUpdateCodexSettings({
+            codexBin: nextCodexBin,
+            codexArgs: nextCodexArgs,
+          })
+        : Promise.resolve({
+            codexBin: nextCodexBin,
+            codexArgs: nextCodexArgs,
+          }));
+      setBackendCodexSettings(nextSettings);
+      setCodexPathDraft(nextSettings.codexBin ?? "");
+      setCodexArgsDraft(nextSettings.codexArgs ?? "");
+      setCodexSettingsError(null);
+      if (appSettings.backendMode === "local") {
+        onSyncLocalCodexSettings?.(nextSettings.codexBin, nextSettings.codexArgs);
+      }
     } finally {
       setIsSavingSettings(false);
     }
@@ -254,6 +332,8 @@ export const useSettingsCodexSection = ({
     codexPathDraft,
     codexArgsDraft,
     codexDirty,
+    codexSettingsLoading,
+    codexSettingsError,
     isSavingSettings,
     doctorState,
     codexUpdateState,

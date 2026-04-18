@@ -24,6 +24,36 @@ import {
 import { DEFAULT_COMMIT_MESSAGE_PROMPT } from "@utils/commitMessagePrompt";
 import { SettingsView } from "./SettingsView";
 
+vi.mock("@settings/hooks/useGlobalAgentsMd", () => ({
+  useGlobalAgentsMd: () => ({
+    content: "",
+    exists: false,
+    truncated: false,
+    isLoading: false,
+    isSaving: false,
+    error: null,
+    isDirty: false,
+    setContent: vi.fn(),
+    refresh: vi.fn(),
+    save: vi.fn(),
+  }),
+}));
+
+vi.mock("@settings/hooks/useGlobalCodexConfigToml", () => ({
+  useGlobalCodexConfigToml: () => ({
+    content: "",
+    exists: false,
+    truncated: false,
+    isLoading: false,
+    isSaving: false,
+    error: null,
+    isDirty: false,
+    setContent: vi.fn(),
+    refresh: vi.fn(),
+    save: vi.fn(),
+  }),
+}));
+
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   ask: vi.fn(),
   open: vi.fn(),

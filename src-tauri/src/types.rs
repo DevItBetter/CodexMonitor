@@ -375,6 +375,13 @@ pub(crate) struct RemoteBackendTarget {
     pub(crate) last_connected_at_ms: Option<i64>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct CodexSettings {
+    pub(crate) codex_bin: Option<String>,
+    pub(crate) codex_args: Option<String>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub(crate) struct AppSettings {
     #[serde(default, rename = "codexBin")]

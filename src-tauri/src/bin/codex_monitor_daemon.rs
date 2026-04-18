@@ -86,9 +86,9 @@ use shared::{
 };
 use storage::{read_settings, read_workspaces};
 use types::{
-    AppSettings, GitCommitDiff, GitFileDiff, GitHubIssuesResponse, GitHubPullRequestComment,
-    GitHubPullRequestDiff, GitHubPullRequestsResponse, GitLogResponse, LocalUsageSnapshot,
-    WorkspaceEntry, WorkspaceInfo, WorkspaceSettings, WorktreeSetupStatus,
+    AppSettings, CodexSettings, GitCommitDiff, GitFileDiff, GitHubIssuesResponse,
+    GitHubPullRequestComment, GitHubPullRequestDiff, GitHubPullRequestsResponse, GitLogResponse,
+    LocalUsageSnapshot, WorkspaceEntry, WorkspaceInfo, WorkspaceSettings, WorktreeSetupStatus,
 };
 use workspace_settings::apply_workspace_settings_update;
 
@@ -585,6 +585,15 @@ impl DaemonState {
 
     async fn update_app_settings(&self, settings: AppSettings) -> Result<AppSettings, String> {
         settings_core::update_app_settings_core(settings, &self.app_settings, &self.settings_path)
+            .await
+    }
+
+    async fn get_codex_settings(&self) -> CodexSettings {
+        settings_core::get_codex_settings_core(&self.app_settings).await
+    }
+
+    async fn update_codex_settings(&self, settings: CodexSettings) -> Result<CodexSettings, String> {
+        settings_core::update_codex_settings_core(settings, &self.app_settings, &self.settings_path)
             .await
     }
 
@@ -1264,6 +1273,15 @@ impl DaemonState {
         codex_args: Option<String>,
     ) -> Result<Value, String> {
         codex_aux_core::codex_doctor_core(&self.app_settings, codex_bin, codex_args).await
+    }
+
+    async fn codex_update(
+        &self,
+        codex_bin: Option<String>,
+        codex_args: Option<String>,
+    ) -> Result<Value, String> {
+        shared::codex_update_core::codex_update_core(&self.app_settings, codex_bin, codex_args)
+            .await
     }
 
     async fn generate_commit_message(

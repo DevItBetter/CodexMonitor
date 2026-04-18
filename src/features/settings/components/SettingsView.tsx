@@ -2,6 +2,7 @@ import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left";
 import X from "lucide-react/dist/esm/icons/x";
 import type {
   AppSettings,
+  CodexSettings,
   CodexDoctorResult,
   CodexUpdateResult,
   DictationModelStatus,
@@ -51,6 +52,9 @@ export type SettingsViewProps = {
     codexBin: string | null,
     codexArgs: string | null,
   ) => Promise<CodexUpdateResult>;
+  onGetCodexSettings?: () => Promise<CodexSettings>;
+  onUpdateCodexSettings?: (settings: CodexSettings) => Promise<CodexSettings>;
+  onSyncLocalCodexSettings?: (codexBin: string | null, codexArgs: string | null) => void;
   onUpdateWorkspaceSettings: (
     id: string,
     settings: Partial<WorkspaceSettings>,
@@ -87,18 +91,21 @@ export function SettingsView({
   onToggleAutomaticAppUpdateChecks,
   onRunDoctor,
   onRunCodexUpdate,
+  onGetCodexSettings,
+  onUpdateCodexSettings,
+  onSyncLocalCodexSettings,
   onUpdateWorkspaceSettings,
   scaleShortcutTitle,
   scaleShortcutText,
   onTestNotificationSound,
   onTestSystemNotification,
-  onMobileConnectSuccess,
-  dictationModelStatus,
-  onDownloadDictationModel,
-  onCancelDictationDownload,
-  onRemoveDictationModel,
-  initialSection,
-}: SettingsViewProps) {
+    onMobileConnectSuccess,
+    dictationModelStatus,
+    onDownloadDictationModel,
+    onCancelDictationDownload,
+    onRemoveDictationModel,
+    initialSection,
+  }: SettingsViewProps) {
   const {
     activeSection,
     showMobileDetail,
@@ -108,6 +115,7 @@ export function SettingsView({
   } = useSettingsViewNavigation({ initialSection });
 
   const orchestration = useSettingsViewOrchestration({
+    activeSection,
     workspaceGroups,
     groupedWorkspaces,
     ungroupedLabel,
@@ -119,6 +127,9 @@ export function SettingsView({
     onToggleAutomaticAppUpdateChecks,
     onRunDoctor,
     onRunCodexUpdate,
+    onGetCodexSettings,
+    onUpdateCodexSettings,
+    onSyncLocalCodexSettings,
     onUpdateWorkspaceSettings,
     scaleShortcutTitle,
     scaleShortcutText,

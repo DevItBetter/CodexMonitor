@@ -4,7 +4,7 @@ use tokio::sync::Mutex;
 
 use crate::codex::config as codex_config;
 use crate::storage::write_settings;
-use crate::types::AppSettings;
+use crate::types::{AppSettings, CodexSettings};
 use crate::utils::normalize_windows_namespace_path;
 
 fn normalize_personality(value: &str) -> Option<&'static str> {
@@ -56,6 +56,26 @@ pub(crate) async fn update_app_settings_core(
     write_settings(settings_path, &settings)?;
     let mut current = app_settings.lock().await;
     *current = settings.clone();
+    Ok(settings)
+}
+
+pub(crate) async fn get_codex_settings_core(app_settings: &Mutex<AppSettings>) -> CodexSettings {
+    let settings = app_settings.lock().await;
+    CodexSettings {
+        codex_bin: settings.codex_bin.clone(),
+        codex_args: settings.codex_args.clone(),
+    }
+}
+
+pub(crate) async fn update_codex_settings_core(
+    settings: CodexSettings,
+    app_settings: &Mutex<AppSettings>,
+    settings_path: &PathBuf,
+) -> Result<CodexSettings, String> {
+    let mut current = app_settings.lock().await;
+    current.codex_bin = settings.codex_bin.clone();
+    current.codex_args = settings.codex_args.clone();
+    write_settings(settings_path, &current)?;
     Ok(settings)
 }
 

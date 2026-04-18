@@ -150,9 +150,13 @@ fn can_retry_after_disconnect(method: &str) -> bool {
             | "apps_list"
             | "collaboration_mode_list"
             | "connect_workspace"
+            | "codex_doctor"
+            | "codex_update"
             | "experimental_feature_list"
             | "set_workspace_runtime_codex_args"
             | "file_read"
+            | "get_codex_config_path"
+            | "get_codex_settings"
             | "get_agents_settings"
             | "get_config_model"
             | "get_git_commit_diff"
@@ -180,6 +184,7 @@ fn can_retry_after_disconnect(method: &str) -> bool {
             | "thread_live_subscribe"
             | "thread_live_unsubscribe"
             | "skills_list"
+            | "update_codex_settings"
             | "worktree_setup_status"
     )
 }

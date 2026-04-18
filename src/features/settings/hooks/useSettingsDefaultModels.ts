@@ -59,7 +59,7 @@ function compareModelsByLatest(a: ModelOption, b: ModelOption): number {
   return a.model.localeCompare(b.model);
 }
 
-export function useSettingsDefaultModels(projects: WorkspaceInfo[]) {
+export function useSettingsDefaultModels(projects: WorkspaceInfo[], enabled = true) {
   const [state, setState] = useState<SettingsDefaultModelsState>(EMPTY_STATE);
   const requestIdRef = useRef(0);
   const sourceWorkspaceId = projects[0]?.id ?? null;
@@ -67,6 +67,10 @@ export function useSettingsDefaultModels(projects: WorkspaceInfo[]) {
   const sourceWorkspaceConnected = projects[0]?.connected ?? false;
 
   const refresh = useCallback(async () => {
+    if (!enabled) {
+      setState(EMPTY_STATE);
+      return;
+    }
     requestIdRef.current += 1;
     const requestId = requestIdRef.current;
     if (!sourceWorkspaceId || !sourceWorkspaceName) {
@@ -164,11 +168,15 @@ export function useSettingsDefaultModels(projects: WorkspaceInfo[]) {
         });
       }
     }
-  }, [sourceWorkspaceConnected, sourceWorkspaceId, sourceWorkspaceName]);
+  }, [enabled, sourceWorkspaceConnected, sourceWorkspaceId, sourceWorkspaceName]);
 
   useEffect(() => {
+    if (!enabled) {
+      setState(EMPTY_STATE);
+      return;
+    }
     void refresh();
-  }, [refresh]);
+  }, [enabled, refresh]);
 
   return {
     ...state,

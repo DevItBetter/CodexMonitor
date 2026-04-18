@@ -2,7 +2,11 @@ import { useThemePreference } from "../../layout/hooks/useThemePreference";
 import { useTransparencyPreference } from "../../layout/hooks/useTransparencyPreference";
 import { useUiScaleShortcuts } from "../../layout/hooks/useUiScaleShortcuts";
 import { useAppSettings } from "../../settings/hooks/useAppSettings";
-import { runCodexUpdate } from "../../../services/tauri";
+import {
+  getCodexSettings,
+  runCodexUpdate,
+  updateCodexSettings,
+} from "../../../services/tauri";
 
 export function useAppSettingsController() {
   const {
@@ -33,6 +37,10 @@ export function useAppSettingsController() {
     setAppSettings,
     saveSettings,
     queueSaveSettings,
+    getCodexSettings,
+    updateCodexSettings,
+    syncLocalCodexSettings: (codexBin: string | null, codexArgs: string | null) =>
+      setAppSettings((current) => ({ ...current, codexBin, codexArgs })),
     doctor,
     codexUpdate: (codexBin: string | null, codexArgs: string | null) =>
       runCodexUpdate(codexBin, codexArgs),

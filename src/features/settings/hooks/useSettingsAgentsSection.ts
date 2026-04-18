@@ -15,6 +15,7 @@ import {
 import { useSettingsDefaultModels } from "./useSettingsDefaultModels";
 
 type UseSettingsAgentsSectionArgs = {
+  enabled?: boolean;
   projects: WorkspaceInfo[];
 };
 
@@ -81,6 +82,7 @@ const toErrorMessage = (value: unknown, fallback: string): string => {
 };
 
 export const useSettingsAgentsSection = ({
+  enabled = true,
   projects,
 }: UseSettingsAgentsSectionArgs): SettingsAgentsSectionProps => {
   const [settings, setSettings] = useState<AgentsSettings | null>(null);
@@ -102,9 +104,15 @@ export const useSettingsAgentsSection = ({
     models: modelOptions,
     isLoading: modelOptionsLoading,
     error: modelOptionsError,
-  } = useSettingsDefaultModels(projects);
+  } = useSettingsDefaultModels(projects, enabled);
 
   const refresh = useCallback(async () => {
+    if (!enabled) {
+      setIsLoading(false);
+      setError(null);
+      setSettings(null);
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
@@ -115,11 +123,17 @@ export const useSettingsAgentsSection = ({
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
+    if (!enabled) {
+      setIsLoading(false);
+      setError(null);
+      setSettings(null);
+      return;
+    }
     void refresh();
-  }, [refresh]);
+  }, [enabled, refresh]);
 
   const applyCoreSettings = useCallback(
     async (

@@ -205,6 +205,10 @@ export type RemoteBackendTarget = {
   token: string | null;
   lastConnectedAtMs?: number | null;
 };
+export type CodexSettings = {
+  codexBin: string | null;
+  codexArgs: string | null;
+};
 export type ThemePreference = "system" | "light" | "dark" | "dim";
 export type PersonalityPreference = "friendly" | "pragmatic";
 export type FollowUpMessageBehavior = "queue" | "steer";

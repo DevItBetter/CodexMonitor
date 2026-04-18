@@ -8,6 +8,7 @@ import {
 } from "@services/tauri";
 
 type UseSettingsFeaturesSectionArgs = {
+  enabled?: boolean;
   appSettings: AppSettings;
   featureWorkspaceId: string | null;
   onUpdateAppSettings: (next: AppSettings) => Promise<void>;
@@ -138,6 +139,7 @@ function mapFeatureToAppSettings(
 }
 
 export const useSettingsFeaturesSection = ({
+  enabled = true,
   appSettings,
   featureWorkspaceId,
   onUpdateAppSettings,
@@ -162,7 +164,7 @@ export const useSettingsFeaturesSection = ({
 
   useEffect(() => {
     let active = true;
-    if (!featureWorkspaceId) {
+    if (!enabled || !featureWorkspaceId) {
       setFeatures([]);
       setFeatureError(null);
       setFeaturesLoading(false);
@@ -222,7 +224,7 @@ export const useSettingsFeaturesSection = ({
     return () => {
       active = false;
     };
-  }, [featureWorkspaceId]);
+  }, [enabled, featureWorkspaceId]);
 
   const stableFeatures = useMemo(
     () =>

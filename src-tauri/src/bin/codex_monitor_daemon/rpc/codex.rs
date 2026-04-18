@@ -1,5 +1,7 @@
 use super::*;
 use serde::de::DeserializeOwned;
+use serde::Serialize;
+use std::future::Future;
 
 fn parse_input<T: DeserializeOwned>(params: &Value) -> Result<T, String> {
     let input_value = params
@@ -8,6 +10,18 @@ fn parse_input<T: DeserializeOwned>(params: &Value) -> Result<T, String> {
         .cloned()
         .ok_or_else(|| "missing `input`".to_string())?;
     serde_json::from_value(input_value).map_err(|err| err.to_string())
+}
+
+fn serialize_value<T: Serialize>(value: T) -> Result<Value, String> {
+    serde_json::to_value(value).map_err(|err| err.to_string())
+}
+
+async fn serialize_result<T, Fut>(future: Fut) -> Result<Value, String>
+where
+    T: Serialize,
+    Fut: Future<Output = Result<T, String>>,
+{
+    future.await.and_then(serialize_value)
 }
 
 pub(super) async fn try_handle(
@@ -22,6 +36,19 @@ pub(super) async fn try_handle(
                 Err(err) => return Some(Err(err)),
             };
             Some(Ok(Value::String(path)))
+        }
+        "get_codex_settings" => Some(serialize_value(state.get_codex_settings().await)),
+        "update_codex_settings" => {
+            let settings_value = match params {
+                Value::Object(map) => map.get("settings").cloned().unwrap_or(Value::Null),
+                _ => Value::Null,
+            };
+            let settings: crate::types::CodexSettings = match serde_json::from_value(settings_value)
+            {
+                Ok(value) => value,
+                Err(err) => return Some(Err(err.to_string())),
+            };
+            Some(serialize_result(state.update_codex_settings(settings)).await)
         }
         "get_config_model" => {
             let workspace_id = match parse_string(params, "workspaceId") {
@@ -477,6 +504,11 @@ pub(super) async fn try_handle(
             let codex_bin = parse_optional_string(params, "codexBin");
             let codex_args = parse_optional_string(params, "codexArgs");
             Some(state.codex_doctor(codex_bin, codex_args).await)
+        }
+        "codex_update" => {
+            let codex_bin = parse_optional_string(params, "codexBin");
+            let codex_args = parse_optional_string(params, "codexArgs");
+            Some(state.codex_update(codex_bin, codex_args).await)
         }
         "generate_run_metadata" => {
             let workspace_id = match parse_string(params, "workspaceId") {

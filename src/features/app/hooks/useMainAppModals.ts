@@ -3,6 +3,7 @@ import type { ComponentType } from "react";
 import type {
   AppSettings,
   BranchInfo,
+  CodexSettings,
   CodexDoctorResult,
   CodexUpdateResult,
   ThreadSummary,
@@ -116,6 +117,9 @@ type UseMainAppModalsArgs = {
       codexBin: string | null,
       codexArgs: string | null,
     ) => Promise<CodexUpdateResult>;
+    getCodexSettings: () => Promise<CodexSettings>;
+    updateCodexSettings: (settings: CodexSettings) => Promise<CodexSettings>;
+    syncLocalCodexSettings: (codexBin: string | null, codexArgs: string | null) => void;
     updateWorkspaceSettings: (
       id: string,
       settings: Partial<WorkspaceSettings>,
@@ -186,6 +190,9 @@ function buildSettingsViewProps({
       settings.handleToggleAutomaticAppUpdateChecks,
     onRunDoctor: settings.doctor,
     onRunCodexUpdate: settings.codexUpdate,
+    onGetCodexSettings: settings.getCodexSettings,
+    onUpdateCodexSettings: settings.updateCodexSettings,
+    onSyncLocalCodexSettings: settings.syncLocalCodexSettings,
     onUpdateWorkspaceSettings: async (id, nextSettings) => {
       await settings.updateWorkspaceSettings(id, nextSettings);
     },

@@ -24,6 +24,8 @@ type SettingsCodexSectionProps = {
   codexPathDraft: string;
   codexArgsDraft: string;
   codexDirty: boolean;
+  codexSettingsLoading: boolean;
+  codexSettingsError: string | null;
   isSavingSettings: boolean;
   doctorState: {
     status: "idle" | "running" | "done";
@@ -116,6 +118,8 @@ export function SettingsCodexSection({
   codexPathDraft,
   codexArgsDraft,
   codexDirty,
+  codexSettingsLoading,
+  codexSettingsError,
   isSavingSettings,
   doctorState,
   codexUpdateState,
@@ -243,6 +247,7 @@ export function SettingsCodexSection({
             value={codexPathDraft}
             placeholder="codex"
             onChange={(event) => onSetCodexPathDraft(event.target.value)}
+            disabled={codexSettingsLoading}
           />
           <button
             type="button"
@@ -250,6 +255,12 @@ export function SettingsCodexSection({
             onClick={() => {
               void onBrowseCodex();
             }}
+            disabled={appSettings.backendMode === "remote" || codexSettingsLoading}
+            title={
+              appSettings.backendMode === "remote"
+                ? "Browse is unavailable while the backend is remote."
+                : undefined
+            }
           >
             Browse
           </button>
@@ -257,6 +268,7 @@ export function SettingsCodexSection({
             type="button"
             className="ghost"
             onClick={() => onSetCodexPathDraft("")}
+            disabled={codexSettingsLoading}
           >
             Use PATH
           </button>
@@ -272,20 +284,28 @@ export function SettingsCodexSection({
             value={codexArgsDraft}
             placeholder="--profile personal"
             onChange={(event) => onSetCodexArgsDraft(event.target.value)}
+            disabled={codexSettingsLoading}
           />
           <button
             type="button"
             className="ghost"
             onClick={() => onSetCodexArgsDraft("")}
+            disabled={codexSettingsLoading}
           >
             Clear
           </button>
         </div>
+        {codexSettingsError && (
+          <div className="settings-help settings-help-error">{codexSettingsError}</div>
+        )}
+        {codexSettingsLoading && <div className="settings-help">Loading Codex settings…</div>}
         <div className="settings-help">
           Extra flags passed before <code>app-server</code>. Use quotes for values with spaces.
         </div>
         <div className="settings-help">
-          These settings apply to the shared Codex app-server used across all connected workspaces.
+          {appSettings.backendMode === "remote"
+            ? "These settings apply to the connected backend host and its shared Codex app-server."
+            : "These settings apply to the shared Codex app-server used across all connected workspaces."}
         </div>
         <div className="settings-help">
           Per-thread override processing ignores unsupported flags: <code>-m</code>/
@@ -302,7 +322,7 @@ export function SettingsCodexSection({
               onClick={() => {
                 void onSaveCodexSettings();
               }}
-              disabled={isSavingSettings}
+              disabled={isSavingSettings || codexSettingsLoading}
             >
               {isSavingSettings ? "Saving..." : "Save"}
             </button>
@@ -313,7 +333,7 @@ export function SettingsCodexSection({
             onClick={() => {
               void onRunDoctor();
             }}
-            disabled={doctorState.status === "running"}
+            disabled={doctorState.status === "running" || codexSettingsLoading}
           >
             <Stethoscope aria-hidden />
             {doctorState.status === "running" ? "Running..." : "Run doctor"}
@@ -324,7 +344,7 @@ export function SettingsCodexSection({
             onClick={() => {
               void onRunCodexUpdate();
             }}
-            disabled={codexUpdateState.status === "running"}
+            disabled={codexUpdateState.status === "running" || codexSettingsLoading}
             title="Update Codex"
           >
             <Stethoscope aria-hidden />

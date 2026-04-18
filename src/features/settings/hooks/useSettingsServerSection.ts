@@ -18,6 +18,7 @@ import { isMobilePlatform } from "@utils/platformPaths";
 import { DEFAULT_REMOTE_HOST } from "@settings/components/settingsViewConstants";
 
 type UseSettingsServerSectionArgs = {
+  enabled?: boolean;
   appSettings: AppSettings;
   onUpdateAppSettings: (next: AppSettings) => Promise<void>;
   onMobileConnectSuccess?: () => Promise<void> | void;
@@ -143,6 +144,7 @@ const buildNextRemoteName = (remoteBackends: RemoteBackendTarget[]) => {
 };
 
 export const useSettingsServerSection = ({
+  enabled = true,
   appSettings,
   onUpdateAppSettings,
   onMobileConnectSuccess,
@@ -623,6 +625,9 @@ export const useSettingsServerSection = ({
   }, [runTcpDaemonAction]);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     if (!mobilePlatform) {
       handleRefreshTailscaleCommandPreview();
       void handleTcpDaemonStatus();
@@ -632,6 +637,7 @@ export const useSettingsServerSection = ({
     }
   }, [
     appSettings.remoteBackendToken,
+    enabled,
     handleRefreshTailscaleCommandPreview,
     handleRefreshTailscaleStatus,
     handleTcpDaemonStatus,
